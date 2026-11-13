@@ -1,0 +1,9 @@
+slot_id,day,period,name
+1,1,1,Day 1 - Morning
+2,1,2,Day 1 - Afternoon
+3,2,1,Day 2 - Morning
+4,2,2,Day 2 - Afternoon
+5,3,1,Day 3 - Morning
+6,3,2,Day 3 - Afternoon
+7,4,1,Day 4 - Morning
+8,4,2,Day 4 - Afternoon

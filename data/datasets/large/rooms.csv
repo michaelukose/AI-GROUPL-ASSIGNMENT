@@ -1,0 +1,9 @@
+room_id,name,capacity
+AUD-1,Grand Auditorium,200
+LH-A,Lecture Hall A,150
+LH-B,Lecture Hall B,100
+LH-C,Lecture Hall C,80
+CL-1,Computer Lab 1,60
+CL-2,Computer Lab 2,50
+SR-1,Seminar Room 1,40
+SR-2,Seminar Room 2,30

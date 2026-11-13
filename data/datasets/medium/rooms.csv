@@ -1,0 +1,7 @@
+room_id,name,capacity
+R1,Room A (Small),30
+R2,Room B (Small),40
+R3,Room C (Medium),60
+R4,Room D (Medium),80
+R5,Room E (Large),100
+R6,Room F (Lecture Hall),150

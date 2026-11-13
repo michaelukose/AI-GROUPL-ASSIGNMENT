@@ -1,0 +1,21 @@
+exam_id,name,enrollment
+E01,CS101 Introduction to Programming,85
+E02,CS201 Data Structures,65
+E03,CS301 Algorithms,45
+E04,CS401 Machine Learning,35
+E05,MTH101 Calculus I,120
+E06,MTH201 Linear Algebra,75
+E07,MTH301 Probability and Statistics,60
+E08,MTH401 Numerical Methods,40
+E09,ENG101 English Composition,110
+E10,ENG201 Technical Writing,55
+E11,ENG301 World Literature,30
+E12,BUS101 Introduction to Business,95
+E13,BUS201 Marketing Principles,50
+E14,BUS301 Financial Accounting,55
+E15,BUS401 Strategic Management,35
+E16,PHY101 Physics I,80
+E17,PHY201 Electromagnetism,45
+E18,PHY301 Quantum Mechanics,30
+E19,CHEM101 General Chemistry,90
+E20,CHEM201 Organic Chemistry,40

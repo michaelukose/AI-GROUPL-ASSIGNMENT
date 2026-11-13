@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exam Timetabling Visualizer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17253a;
+      --muted: #607087;
+      --line: #dce4ec;
+      --paper: #ffffff;
+      --canvas: #f3f6fa;
+      --blue: #315be8;
+      --blue-soft: #edf1ff;
+      --green: #18784f;
+      --green-soft: #e9f6ef;
+      --amber: #996000;
+      --amber-soft: #fff3db;
+      --red: #b43f49;
+      --red-soft: #fff0f0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); }
+    header { padding: 30px max(24px, calc((100vw - 1420px) / 2)); background: #14243b; color: white; }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    h1 { margin: 0; font-size: clamp(25px, 3vw, 36px); letter-spacing: -.035em; }
+    header p { max-width: 760px; margin: 10px 0 0; color: #c2cddd; line-height: 1.55; }
+    .tag { flex: none; padding: 8px 12px; border: 1px solid #53647b; border-radius: 999px; color: #dce6f5; font-size: 12px; }
+    main { max-width: 1420px; margin: 24px auto 56px; padding: 0 24px; }
+    .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 5px 18px #263b5710; }
+    .loader { display: grid; grid-template-columns: minmax(250px, .8fr) 1.5fr; gap: 24px; padding: 20px; align-items: center; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .loader p, .section-note { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .load-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+    button { border: 0; padding: 10px 15px; border-radius: 9px; color: white; background: var(--blue); font: inherit; font-weight: 650; cursor: pointer; }
+    button:hover { filter: brightness(.96); }
+    button.secondary { color: var(--ink); background: #edf1f6; }
+    .file-list { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; }
+    .file-control { padding: 10px; border: 1px dashed #c6d0dc; border-radius: 10px; background: #fbfcfe; }
+    .file-control label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; }
+    input[type=file] { max-width: 100%; font-size: 11px; color: var(--muted); }
+    .status { min-height: 20px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+    .notice { display: none; margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+    .notice.show { display: block; }
+    .notice.warning { color: var(--amber); background: var(--amber-soft); }
+    .notice.error { color: var(--red); background: var(--red-soft); }
+    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 18px 0; }
+    .metric { padding: 16px 18px; }
+    .metric .value { font-size: 27px; line-height: 1.1; font-weight: 750; letter-spacing: -.04em; }
+    .metric .label { margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(360px, .8fr); gap: 18px; align-items: start; }
+    .section { padding: 20px; }
+    .section-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .legend { display: flex; gap: 12px; color: var(--muted); font-size: 11px; }
+    .dot { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; background: #7190d9; vertical-align: -1px; }
+    .dot.edge { background: #e46e75; }
+    .graph-wrap { min-height: 300px; border: 1px solid #e8edf3; border-radius: 12px; background: #fbfcfe; overflow: hidden; }
+    svg { display: block; width: 100%; height: 380px; }
+    .empty { display: grid; place-items: center; min-height: 280px; padding: 20px; color: var(--muted); text-align: center; font-size: 14px; }
+    .slot-list { display: grid; gap: 10px; }
+    .slot-card { padding: 13px; border: 1px solid var(--line); border-radius: 12px; }
+    .slot-title { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 9px; font-size: 13px; font-weight: 750; }
+    .slot-meta { color: var(--muted); font-size: 11px; font-weight: 500; }
+    .exam-chip { display: inline-flex; align-items: center; gap: 6px; margin: 3px 5px 3px 0; padding: 6px 8px; border-radius: 7px; background: var(--blue-soft); font-size: 11px; }
+    .exam-chip strong { font-size: 11px; }
+    .exam-chip em { color: var(--muted); font-style: normal; }
+    .room-badge { color: var(--green); }
+    .room-badge.missing { color: var(--red); }
+    .table-panel { margin-top: 18px; overflow: hidden; }
+    .table-scroll { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 12px; }
+    th, td { padding: 11px 14px; border-bottom: 1px solid #edf0f4; text-align: left; }
+    th { color: var(--muted); background: #fafbfd; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+    td:first-child { font-weight: 700; }
+    .pill { display: inline-block; padding: 4px 7px; border-radius: 99px; color: var(--green); background: var(--green-soft); font-size: 10px; font-weight: 700; }
+    .pill.warn { color: var(--amber); background: var(--amber-soft); }
+    .pill.bad { color: var(--red); background: var(--red-soft); }
+    .footnote { margin: 13px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    @media (max-width: 980px) {
+      .loader { grid-template-columns: 1fr; }
+      .content-grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 620px) {
+      main { padding: 0 14px; }
+      header { padding: 24px 18px; }
+      .topline { align-items: start; flex-direction: column; }
+      .file-list { grid-template-columns: repeat(2, 1fr); }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric { padding: 14px; }
+      svg { height: 310px; }
+      .section { padding: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topline">
+      <div>
+        <h1>Exam Timetabling Visualizer</h1>
+        <p>Explore the student conflict graph, check room capacity, and preview a timetable from the project’s CSV dataset.</p>
+      </div>
+      <span class="tag">CSP · Graph Coloring · Genetic Search</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel loader" aria-labelledby="load-title">
+      <div>
+        <h2 id="load-title">Load a dataset</h2>
+        <p>Use the bundled example or select the four CSV files from another dataset. Keep the files with their standard headers.</p>
+        <div class="load-actions">
+          <select id="scenario-select" style="padding: 9px 12px; border-radius: 9px; border: 1px solid #c6d0dc; font: inherit; background: white; font-weight: 550;">
+            <option value="demo">Demo Dataset (15 exams, 8 slots, 5 rooms)</option>
+            <option value="medium">Medium Dataset (20 exams, 8 slots, 6 rooms)</option>
+            <option value="large">Large University (30 exams, 12 slots, 8 rooms)</option>
+            <option value="stress">Stress Test (12 exams, 5 slots, dense)</option>
+            <option value="unsolvable">Unsolvable (4-clique in 3 slots)</option>
+          </select>
+          <button id="sample-button" type="button">Load Scenario</button>
+          <button id="upload-button" class="secondary" type="button">Load custom CSVs</button>
+        </div>
+        <div id="status" class="status" role="status">No dataset loaded yet.</div>
+      </div>
+      <div class="file-list">
+        <div class="file-control"><label for="exams-file">Exams</label><input id="exams-file" type="file" accept=".csv,text/csv"></div>
+        <div class="file-control"><label for="registrations-file">Registrations</label><input id="registrations-file" type="file" accept=".csv,text/csv"></div>
+        <div class="file-control"><label for="timeslots-file">Time slots</label><input id="timeslots-file" type="file" accept=".csv,text/csv"></div>
+        <div class="file-control"><label for="rooms-file">Rooms</label><input id="rooms-file" type="file" accept=".csv,text/csv"></div>
+      </div>
+    </section>
+
+    <div id="notices"></div>
+
+    <section class="metrics" aria-label="Dataset summary">
+      <article class="panel metric"><div id="m-exams" class="value">—</div><div class="label">Exams</div></article>
+      <article class="panel metric"><div id="m-students" class="value">—</div><div class="label">Student IDs</div></article>
+      <article class="panel metric"><div id="m-conflicts" class="value">—</div><div class="label">Conflict pairs</div></article>
+      <article class="panel metric"><div id="m-slots" class="value">—</div><div class="label">Time slots</div></article>
+      <article class="panel metric"><div id="m-rooms" class="value">—</div><div class="label">Rooms</div></article>
+    </section>
+
+    <div class="content-grid">
+      <section class="panel section" aria-labelledby="graph-title">
+        <div class="section-head">
+          <div><h2 id="graph-title">Student conflict graph</h2><p class="section-note">Each node is an exam. An edge means at least one student takes both exams.</p></div>
+          <div class="legend"><span><i class="dot"></i>Exam</span><span><i class="dot edge"></i>Conflict</span></div>
+        </div>
+        <div id="graph" class="graph-wrap"><div class="empty">Load a dataset to draw the conflict graph.</div></div>
+      </section>
+
+      <section class="panel section" aria-labelledby="schedule-title">
+        <div class="section-head">
+          <div><h2 id="schedule-title">Greedy schedule preview</h2><p class="section-note">DSATUR graph coloring with best-fit room assignment.</p></div>
+        </div>
+        <div id="schedule" class="slot-list"><div class="empty">A preview appears after a dataset loads.</div></div>
+        <p class="footnote">This browser preview is a deterministic heuristic. Run <code>src/main.lisp</code> to compare the project’s CSP backtracking and genetic algorithm results.</p>
+      </section>
+    </div>
+
+    <section class="panel table-panel" aria-labelledby="exam-table-title">
+      <div class="section" style="padding-bottom:8px"><h2 id="exam-table-title">Exam details</h2><p class="section-note">Enrollment is the planned seat demand; registration rows are the synthetic cohort used to build conflict edges.</p></div>
+      <div id="exam-table" class="table-scroll"><div class="empty">No exam rows to display.</div></div>
+    </section>
+  </main>
+
+  <script>
+    const sampleBase = "../data/datasets/demo/";
+    const requiredColumns = {
+      exams: ["exam_id", "name", "enrollment"],
+      registrations: ["student_id", "exam_id"],
+      timeslots: ["slot_id", "day", "period", "name"],
+      rooms: ["room_id", "name", "capacity"]
+    };
+    const $ = (selector) => document.querySelector(selector);
+    let model = null;
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = "", quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (quoted) {
+          if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+          else if (ch === '"') quoted = false;
+          else field += ch;
+        } else if (ch === '"') quoted = true;
+        else if (ch === ",") { row.push(field); field = ""; }
+        else if (ch === "\n" || ch === "\r") {
+          if (ch === "\r" && text[i + 1] === "\n") i++;
+          row.push(field); field = "";
+          if (row.some((cell) => cell.trim() !== "")) rows.push(row);
+          row = [];
+        } else field += ch;
+      }
+      if (quoted) throw new Error("CSV contains an unclosed quoted field.");
+      row.push(field);
+      if (row.some((cell) => cell.trim() !== "")) rows.push(row);
+      if (!rows.length) throw new Error("CSV file is empty.");
+      const headers = rows.shift().map((cell) => cell.replace(/^\uFEFF/, "").trim().toLowerCase());
+      if (new Set(headers).size !== headers.length || headers.some((header) => !header))
+        throw new Error("CSV has a blank or duplicate header.");
+      return rows.map((values, index) => {
+        if (values.length !== headers.length) throw new Error(`CSV row ${index + 2} has an unexpected number of fields.`);
+        return Object.fromEntries(headers.map((header, column) => [header, values[column].trim()]));
+      });
+    }
+
+    function rowsWithColumns(text, type) {
+      const rows = parseCSV(text);
+      const columns = Object.keys(rows[0] || {});
+      const missing = requiredColumns[type].filter((column) => !columns.includes(column));
+      if (missing.length) throw new Error(`${type}.csv is missing: ${missing.join(", ")}.`);
+      return rows;
+    }
+
+    function positiveInt(value, label) {
+      const number = Number(value);
+      if (!Number.isInteger(number) || number <= 0) throw new Error(`${label} must be a positive integer; got “${value}”.`);
+      return number;
+    }
+
+    function makeModel(files) {
+      const exams = new Map();
+      for (const row of rowsWithColumns(files.exams, "exams")) {
+        if (!row.exam_id || exams.has(row.exam_id)) throw new Error(`Blank or duplicate exam ID: “${row.exam_id}”.`);
+        exams.set(row.exam_id, { id: row.exam_id, name: row.name, size: positiveInt(row.enrollment, `Enrollment for ${row.exam_id}`), students: new Set(), neighbors: new Set() });
+      }
+      const students = new Map();
+      for (const row of rowsWithColumns(files.registrations, "registrations")) {
+        if (!row.student_id) throw new Error("Registration has a blank student ID.");
+        const exam = exams.get(row.exam_id);
+        if (!exam) throw new Error(`Registration references unknown exam “${row.exam_id}”.`);
+        if (exam.students.has(row.student_id)) throw new Error(`Duplicate registration: ${row.student_id} / ${row.exam_id}.`);
+        exam.students.add(row.student_id);
+        if (!students.has(row.student_id)) students.set(row.student_id, new Set());
+        students.get(row.student_id).add(row.exam_id);
+      }
+      for (const examIds of students.values()) {
+        const list = [...examIds];
+        for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+          exams.get(list[i]).neighbors.add(list[j]);
+          exams.get(list[j]).neighbors.add(list[i]);
+        }
+      }
+      const slots = new Map();
+      for (const row of rowsWithColumns(files.timeslots, "timeslots")) {
+        const id = positiveInt(row.slot_id, "Slot ID");
+        if (slots.has(id)) throw new Error(`Duplicate slot ID: ${id}.`);
+        slots.set(id, { id, day: positiveInt(row.day, `Day for slot ${id}`), period: positiveInt(row.period, `Period for slot ${id}`), name: row.name });
+      }
+      const rooms = new Map();
+      for (const row of rowsWithColumns(files.rooms, "rooms")) {
+        if (!row.room_id || rooms.has(row.room_id)) throw new Error(`Blank or duplicate room ID: “${row.room_id}”.`);
+        rooms.set(row.room_id, { id: row.room_id, name: row.name, capacity: positiveInt(row.capacity, `Capacity for ${row.room_id}`) });
+      }
+      if (!slots.size && exams.size) throw new Error("Add at least one time slot when exams are present.");
+      return { exams, students, slots, rooms, conflicts: [], assignment: new Map(), roomAssignment: new Map(), unplaced: [] };
+    }
+
+    function colorAndAssign(data) {
+      const colors = new Map();
+      const remaining = new Set(data.exams.keys());
+      while (remaining.size) {
+        const chosen = [...remaining].map((id) => {
+          const exam = data.exams.get(id);
+          const saturation = new Set([...exam.neighbors].map((neighbor) => colors.get(neighbor)).filter((color) => color !== undefined)).size;
+          return { id, saturation, degree: exam.neighbors.size };
+        }).sort((a, b) => b.saturation - a.saturation || b.degree - a.degree || a.id.localeCompare(b.id))[0];
+        const unavailable = new Set([...data.exams.get(chosen.id).neighbors].map((neighbor) => colors.get(neighbor)).filter((color) => color !== undefined));
+        let color = 0;
+        while (unavailable.has(color)) color++;
+        colors.set(chosen.id, color);
+        remaining.delete(chosen.id);
+      }
+      const slotList = [...data.slots.values()].sort((a, b) => a.id - b.id);
+      const groups = new Map(slotList.map((slot) => [slot.id, []]));
+      for (const [examId, color] of colors) {
+        const slot = slotList[color];
+        if (slot) { data.assignment.set(examId, slot.id); groups.get(slot.id).push(examId); }
+        else data.unplaced.push(examId);
+      }
+      for (const [slotId, examIds] of groups) {
+        const available = [...data.rooms.values()].sort((a, b) => a.capacity - b.capacity || a.id.localeCompare(b.id));
+        examIds.sort((a, b) => data.exams.get(b).size - data.exams.get(a).size || a.localeCompare(b));
+        for (const examId of examIds) {
+          const exam = data.exams.get(examId);
+          const roomIndex = available.findIndex((room) => room.capacity >= exam.size);
+          if (roomIndex < 0) data.roomAssignment.set(examId, null);
+          else data.roomAssignment.set(examId, available.splice(roomIndex, 1)[0].id);
+        }
+      }
+      data.conflicts = [];
+      for (const exam of data.exams.values()) for (const neighborId of exam.neighbors)
+        if (exam.id.localeCompare(neighborId) < 0) data.conflicts.push([exam.id, neighborId]);
+      return { colors, groups };
+    }
+
+    function safeText(text) {
+      return String(text).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+    }
+
+    function drawGraph(data, colors) {
+      const host = $("#graph");
+      const nodes = [...data.exams.values()].sort((a, b) => a.id.localeCompare(b.id));
+      if (!nodes.length) { host.innerHTML = '<div class="empty">This dataset has no exams.</div>'; return; }
+      const width = 800, height = 380, cx = width / 2, cy = height / 2;
+      const radius = Math.min(width * .39, height * .39);
+      const positions = new Map(nodes.map((exam, index) => {
+        const angle = (2 * Math.PI * index / nodes.length) - Math.PI / 2;
+        return [exam.id, { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) }];
+      }));
+      const palette = ["#315be8", "#17805b", "#ad6400", "#a1489f", "#168599", "#c24c5a", "#6572bc", "#75921a"];
+      const edges = data.conflicts.map(([a, b]) => {
+        const p1 = positions.get(a), p2 = positions.get(b);
+        return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#e7a0a4" stroke-width="1.6" opacity=".72"><title>${safeText(a)} conflicts with ${safeText(b)}</title></line>`;
+      }).join("");
+      const points = nodes.map((exam) => {
+        const point = positions.get(exam.id), color = colors.get(exam.id) ?? 0;
+        const fill = palette[color % palette.length];
+        return `<g><title>${safeText(exam.id)} — ${safeText(exam.name)}; ${exam.neighbors.size} conflicts</title><circle cx="${point.x}" cy="${point.y}" r="15" fill="${fill}" stroke="white" stroke-width="3"/><text x="${point.x}" y="${point.y + 29}" text-anchor="middle" fill="#23334a" font-size="11" font-weight="700">${safeText(exam.id)}</text></g>`;
+      }).join("");
+      host.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Exam conflict graph">${edges}${points}</svg>`;
+    }
+
+    function render(data, colors, groups) {
+      $("#m-exams").textContent = data.exams.size;
+      $("#m-students").textContent = data.students.size;
+      $("#m-conflicts").textContent = data.conflicts.length;
+      $("#m-slots").textContent = data.slots.size;
+      $("#m-rooms").textContent = data.rooms.size;
+      drawGraph(data, colors);
+      const notices = [];
+      if (data.unplaced.length) notices.push({ type: "warning", text: `${data.unplaced.length} exam(s) need more distinct time slots than this DSATUR preview found. Unplaced: ${data.unplaced.join(", ")}.` });
+      const roomFailures = [...data.roomAssignment].filter(([, roomId]) => !roomId).map(([examId]) => examId);
+      if (roomFailures.length) notices.push({ type: "warning", text: `No suitable free room was found for: ${roomFailures.join(", ")}. Add room capacity or more slots.` });
+      $("#notices").innerHTML = notices.map((notice) => `<div class="notice show ${notice.type}">${safeText(notice.text)}</div>`).join("");
+
+      const slotList = [...data.slots.values()].sort((a, b) => a.id - b.id);
+      const scheduleHtml = slotList.map((slot) => {
+        const ids = groups.get(slot.id) || [];
+        const cards = ids.length ? ids.map((id) => {
+          const exam = data.exams.get(id), roomId = data.roomAssignment.get(id), room = roomId ? data.rooms.get(roomId) : null;
+          return `<span class="exam-chip"><strong>${safeText(id)}</strong><em>${safeText(exam.name)} · ${exam.size}</em><b class="room-badge ${room ? "" : "missing"}">${room ? safeText(roomId) : "No room"}</b></span>`;
+        }).join("") : '<span class="section-note">No exams assigned by the preview.</span>';
+        return `<article class="slot-card"><div class="slot-title"><span>${safeText(slot.name || `Slot ${slot.id}`)}</span><span class="slot-meta">Day ${slot.day} · Period ${slot.period} · ${ids.length} exam(s)</span></div><div>${cards}</div></article>`;
+      }).join("");
+      const unplacedHtml = data.unplaced.length ? `<article class="slot-card"><div class="slot-title"><span>No available slot</span><span class="slot-meta">${data.unplaced.length} exam(s)</span></div>${data.unplaced.map((id) => `<span class="exam-chip"><strong>${safeText(id)}</strong><em>${safeText(data.exams.get(id).name)}</em></span>`).join("")}</article>` : "";
+      $("#schedule").innerHTML = scheduleHtml + unplacedHtml;
+
+      const rows = [...data.exams.values()].sort((a, b) => a.id.localeCompare(b.id)).map((exam) => {
+        const slotId = data.assignment.get(exam.id), slot = data.slots.get(slotId), roomId = data.roomAssignment.get(exam.id), room = roomId ? data.rooms.get(roomId) : null;
+        const slotLabel = slot ? safeText(slot.name || `Slot ${slot.id}`) : "Unplaced";
+        const roomLabel = room ? `${safeText(room.name)} (${room.capacity})` : "No room";
+        const roomClass = room ? "pill" : "pill warn";
+        const status = !slot ? '<span class="pill bad">No slot</span>' : room ? '<span class="pill">Assigned</span>' : '<span class="pill warn">Room issue</span>';
+        return `<tr><td>${safeText(exam.id)}</td><td>${safeText(exam.name)}</td><td>${exam.size}</td><td>${exam.students.size}</td><td>${exam.neighbors.size}</td><td>${slotLabel}</td><td><span class="${roomClass}">${roomLabel}</span></td><td>${status}</td></tr>`;
+      }).join("");
+      $("#exam-table").innerHTML = `<table><thead><tr><th>Exam ID</th><th>Course</th><th>Seats</th><th>Sample registrations</th><th>Conflicts</th><th>Preview slot</th><th>Preview room</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function loadDataset(files, label) {
+      try {
+        const data = makeModel(files);
+        const { colors, groups } = colorAndAssign(data);
+        model = data;
+        render(data, colors, groups);
+        const status = $("#status");
+        status.className = "status success";
+        status.textContent = `${label}: ${data.exams.size} exams loaded.`;
+      } catch (error) {
+        const status = $("#status");
+        status.className = "status error";
+        status.textContent = error.message;
+      }
+    }
+
+    $("#sample-button").addEventListener("click", async () => {
+      const scenario = $("#scenario-select").value;
+      const base = `../data/datasets/${scenario}/`;
+      const status = $("#status"); status.className = "status"; status.textContent = `Loading ${scenario} scenario files…`;
+      try {
+        const names = ["exams", "registrations", "timeslots", "rooms"];
+        const values = await Promise.all(names.map(async (name) => {
+          const response = await fetch(`${base}${name}.csv`);
+          if (!response.ok) throw new Error(`Could not fetch ${scenario} scenario data. Start a local web server (e.g. python -m http.server), or select the four CSV files below.`);
+          return response.text();
+        }));
+        loadDataset(Object.fromEntries(names.map((name, index) => [name, values[index]])), `${scenario} dataset`);
+      } catch (error) {
+        status.className = "status error";
+        status.textContent = `${error.message} For file:// browsing, choose each CSV below and click “Load custom CSVs”.`;
+      }
+    });
+
+    $("#upload-button").addEventListener("click", async () => {
+      const names = ["exams", "registrations", "timeslots", "rooms"];
+      const files = names.map((name) => $(`#${name}-file`).files[0]);
+      if (files.some((file) => !file)) {
+        const status = $("#status"); status.className = "status error"; status.textContent = "Select all four CSV files first."; return;
+      }
+      try {
+        const texts = await Promise.all(files.map((file) => file.text()));
+        loadDataset(Object.fromEntries(names.map((name, index) => [name, texts[index]])), "Uploaded dataset");
+      } catch (error) {
+        const status = $("#status"); status.className = "status error"; status.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>

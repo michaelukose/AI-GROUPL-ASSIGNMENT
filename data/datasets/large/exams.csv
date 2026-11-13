@@ -1,0 +1,31 @@
+exam_id,name,enrollment
+CS101,Intro to Programming,140
+CS201,Data Structures & Algorithms,95
+CS301,Operating Systems,70
+CS302,Database Architecture,80
+CS401,Machine Learning & AI,60
+CS402,Cloud Computing,55
+MTH101,Calculus I,160
+MTH102,Calculus II,110
+MTH201,Linear Algebra,85
+MTH301,Probability & Statistics,75
+MTH401,Numerical Analysis,45
+PHY101,Classical Mechanics,90
+PHY201,Electromagnetism,65
+PHY301,Quantum Physics,35
+CHEM101,General Chemistry I,120
+CHEM201,Organic Chemistry,60
+BIO101,General Biology,105
+BIO201,Molecular Genetics,50
+BUS101,Principles of Management,130
+BUS201,Financial Accounting,90
+BUS301,Corporate Finance,70
+BUS401,Strategic Marketing,65
+ECO101,Microeconomics,115
+ECO201,Macroeconomics,85
+ECO301,Econometrics,45
+LAW101,Constitutional Law,100
+LAW201,Commercial Law,75
+LAW301,Intellectual Property Law,50
+PSY101,Introduction to Psychology,125
+PSY201,Cognitive Psychology,60
